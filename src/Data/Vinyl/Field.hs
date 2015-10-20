@@ -16,6 +16,7 @@ an alternative approach where types serve the role of tags.
 
 module Data.Vinyl.Field
   ( module Data.Vinyl.Core
+  , module Data.Vinyl.Lens
   , FieldType
   , Field(..)
   , Record
@@ -26,6 +27,7 @@ module Data.Vinyl.Field
 
 import qualified Data.Char as Char
 import Data.Vinyl.Core
+import Data.Vinyl.Lens
 import Data.Proxy
 import qualified Language.Haskell.TH as TH
 
