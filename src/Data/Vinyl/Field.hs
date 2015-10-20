@@ -18,6 +18,7 @@ module Data.Vinyl.Field
   ( module Data.Vinyl.Core
   , module Data.Vinyl.Lens
   , FieldType
+  , Global
   , Field(..)
   , Record
   , (=:)
@@ -34,17 +35,21 @@ import qualified Language.Haskell.TH as TH
 -- | Type of the payload associated with a tag.
 type family FieldType (t :: k) :: *
 
+-- | The global domain.
+data Global (t :: k)
+type instance FieldType (Global t) = FieldType t
+
 -- | Wrapper around `FieldType` so it can be partially applied.
-newtype Field (t :: k) = Field { getField :: FieldType t }
+newtype Field (dom :: k -> u) (t :: k) = Field { getField :: FieldType (dom t) }
 
 -- | A record of fields.
-type Record = Rec Field
+type Record dom = Rec (Field dom)
 
 -- | Construct a `Record` with a single field. Tip: combine with `<+>`.
-(=:) :: proxy (t :: k) -> FieldType t -> Record '[t]
+(=:) :: proxy (t :: k) -> FieldType (dom t) -> Record dom '[t]
 (=:) _ x = Field x :& RNil
 
-instance Show (FieldType t) => Show (Field t) where
+instance Show (FieldType (dom t)) => Show (Field dom t) where
   showsPrec n (Field t) = showsPrec n t
 
 emptyDataDecl :: TH.Name -> TH.DecQ

@@ -1,5 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 module Main where
 
 import Data.Vinyl.Field
@@ -12,5 +13,7 @@ type instance FieldType Bar = Bool
 
 main :: IO ()
 main = do
-  let r = foo =: 15 <+> bar =: True
+  let
+    r :: Record Global _
+    r = foo =: 15 <+> bar =: True
   print r
