@@ -4,11 +4,23 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE UndecidableInstances #-}
+
+{- |
+
+The @vinyl@ library provides the @ElField@ data type to implement
+extensible records. However, @ElField@ uses type-level strings as tags,
+effectively giving a rise to a form of duck typing. This module provides
+an alternative approach where types serve the role of tags.
+
+-}
+
 module Data.Vinyl.Field
-  ( FieldType
+  ( module Data.Vinyl.Core
+  , FieldType
   , Field(..)
+  , Record
   , (=:)
-  , module Data.Vinyl.Core
+  -- * Template Haskell utilities
   , makeTag
   ) where
 
@@ -17,12 +29,16 @@ import Data.Vinyl.Core
 import Data.Proxy
 import qualified Language.Haskell.TH as TH
 
+-- | Type of the payload associated with a tag.
 type family FieldType (t :: k) :: *
 
-data Field (t :: k) = Field { getField :: FieldType t }
+-- | Wrapper around `FieldType` so it can be partially applied.
+newtype Field (t :: k) = Field { getField :: FieldType t }
 
+-- | A record of fields.
 type Record = Rec Field
 
+-- | Construct a `Record` with a single field. Tip: combine with `<+>`.
 (=:) :: proxy (t :: k) -> FieldType t -> Record '[t]
 (=:) _ x = Field x :& RNil
 
@@ -41,15 +57,28 @@ proxySimple name ty = do
   val <- funSimple name [e| Proxy |]
   return (sig, val)
 
-makeTag :: String -> TH.DecsQ
-makeTag strTagName = do
-    tagDecl <- emptyDataDecl tagName
-    (tagProxySig, tagProxyVal) <- proxySimple tagProxyName tag
-    return [tagDecl, tagProxySig, tagProxyVal]
+tagMangle :: String -> (TH.Name, TH.Name)
+tagMangle str = (tagName, tagProxyName)
   where
-    (strTagName, strTagProxyName) = case strTagName of
+    (strTagName, strTagProxyName) = case str of
       []     -> ([], [])
       (c:cs) -> (Char.toUpper c : cs, Char.toLower c : cs)
     tagName = TH.mkName strTagName
-    tag = TH.conT tagName
     tagProxyName = TH.mkName strTagProxyName
+
+mkTag :: (TH.Name, TH.Name) -> TH.DecsQ
+mkTag (tagName, tagProxyName) = do
+  tagDecl <- emptyDataDecl tagName
+  (tagProxySig, tagProxyVal) <- proxySimple tagProxyName (TH.conT tagName)
+  return [tagDecl, tagProxySig, tagProxyVal]
+
+-- |
+-- Creates a tag and a value-level proxy for it.
+--
+-- @'makeTag' \"Foo\"@ generates the following code:
+--
+-- > data Foo
+-- > foo :: Proxy Foo
+-- > foo = Proxy
+makeTag :: String -> TH.DecsQ
+makeTag = mkTag . tagMangle
