@@ -2,7 +2,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 {- |
@@ -17,8 +19,8 @@ an alternative approach where types serve the role of tags.
 module Data.Vinyl.Field
   ( module Data.Vinyl.Core
   , module Data.Vinyl.Lens
+  , Bundle(..)
   , FieldType
-  , Global
   , Field(..)
   , Record
   , (=:)
@@ -32,25 +34,25 @@ import Data.Vinyl.Lens
 import Data.Proxy
 import qualified Language.Haskell.TH as TH
 
--- | Type of the payload associated with a tag.
-type family FieldType (t :: k) :: *
+-- | Bundle a tag with type.
+data Bundle k star = k :- star
 
--- | The global domain.
-data Global (t :: k)
-type instance FieldType (Global t) = FieldType t
+-- | Extract the type of the field from a `Bundle`.
+type family FieldType (b :: Bundle k star) where
+  FieldType (t ':- ty) = ty
 
--- | Wrapper around `FieldType` so it can be partially applied.
-newtype Field (dom :: k -> u) (t :: k) = Field { getField :: FieldType (dom t) }
+-- | Reify a `Bundle`.
+newtype Field (b :: Bundle k *) = Field { getField :: FieldType b }
 
 -- | A record of fields.
-type Record dom = Rec (Field dom)
+type Record = Rec Field
 
 -- | Construct a `Record` with a single field. Tip: combine with `<+>`.
-(=:) :: proxy (t :: k) -> FieldType (dom t) -> Record dom '[t]
+(=:) :: proxy (t :: k) -> ty -> Record '[t ':- ty]
 (=:) _ x = Field x :& RNil
 
-instance Show (FieldType (dom t)) => Show (Field dom t) where
-  showsPrec n (Field t) = showsPrec n t
+instance Show ty => Show (Field (t ':- ty)) where
+  showsPrec n = showsPrec n . getField
 
 emptyDataDecl :: TH.Name -> TH.DecQ
 emptyDataDecl name = TH.dataD (return []) name [] [] []
