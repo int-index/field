@@ -1,6 +1,2 @@
-flags: {}
-packages:
-- '.'
-extra-deps:
-- vinyl-0.5.1
-resolver: lts-3.10
+packages: ['.']
+resolver: lts-7.1

@@ -9,9 +9,8 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Data.Vinyl.Field
-  build-depends:       base >=4.8 && <4.9
+  build-depends:       base >=4.9 && <4.10
                ,       vinyl >=0.5
-               ,       template-haskell >=2.10
   default-language:    Haskell2010
   hs-source-dirs:      src
   ghc-options:         -Wall
